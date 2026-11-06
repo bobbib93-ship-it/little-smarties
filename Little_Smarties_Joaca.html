@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#6557d9">
+<title>Little Smarties</title>
+<style>
+:root{--ink:#25304a;--purple:#6557d9;--bg:#f3f5ff;--green:#23845b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#e8f7ff,#fff1f6);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;text-align:center}
+header{padding:22px 12px 8px}h1{font-size:30px;margin:4px}header p{margin:4px;color:#59657d}
+.wrap{max-width:650px;margin:auto;padding:10px 14px 28px}.panel{background:#fff;border-radius:24px;padding:18px;margin:12px 0;box-shadow:0 8px 24px #24334a18}
+button{border:0;border-radius:16px;padding:13px 16px;margin:5px;font-size:16px;font-weight:750;background:#e9efff;color:#26345a;cursor:pointer}
+button:focus,input:focus{outline:3px solid #b9b1ff;outline-offset:2px}.primary{background:var(--purple);color:white}.activity{min-width:42%;min-height:76px;font-size:18px}.toprow{display:flex;justify-content:center;flex-wrap:wrap;gap:4px}
+#question{font-size:25px;font-weight:850;margin:18px 4px 12px}.choices{display:flex;justify-content:center;flex-wrap:wrap;gap:7px}.choices button{min-width:88px;min-height:65px;font-size:23px}
+#feedback{min-height:32px;font-weight:800;color:var(--green);padding:8px}
+.progress{height:10px;background:#edf0f8;border-radius:20px;overflow:hidden;margin:10px 0}.bar{height:100%;width:0;background:#6557d9;transition:width .2s}
+.meta{font-size:14px;color:#68718a}.hidden{display:none!important}.badge{display:inline-block;background:#f2efff;padding:7px 12px;border-radius:20px;font-weight:700;margin:3px}
+input{padding:12px;border:1px solid #ccd2e2;border-radius:12px;font-size:17px;width:110px}
+footer{padding:18px;color:#68718a;font-size:13px}
+</style></head>
+<body>
+<header><h1>🌟 Micuții Deștepți</h1><div><b>Little Smarties</b></div><p id="tagline">Învață jucându-te!</p></header>
+<div class="wrap">
+<section class="panel">
+ <div class="toprow">
+  <button onclick="setLang('ro')">🇷🇴 Română</button><button onclick="setLang('en')">🇬🇧 English</button>
+  <button id="voiceBtn" onclick="toggleVoice()">🔊 Voce: pornită</button>
+ </div>
+ <div class="meta" id="languageNote">Alege limba și o activitate.</div>
+</section>
+<section class="panel" id="menu">
+ <h2 id="menuTitle">Ce vrei să înveți astăzi?</h2>
+ <button class="activity primary" onclick="start('letters')">🔤<br><span data-ro="Litere" data-en="Letters">Litere</span></button>
+ <button class="activity primary" onclick="start('numbers')">🔢<br><span data-ro="Numere" data-en="Numbers">Numere</span></button>
+ <button class="activity primary" onclick="start('colors')">🎨<br><span data-ro="Culori" data-en="Colors">Culori</span></button>
+ <button class="activity primary" onclick="start('animals')">🐾<br><span data-ro="Animale" data-en="Animals">Animale</span></button>
+ <button class="activity primary" onclick="start('shapes')">🔺<br><span data-ro="Forme" data-en="Shapes">Forme</span></button>
+ <button class="activity primary" onclick="start('math')">🧠<br><span data-ro="Socoteli" data-en="Math">Socoteli</span></button>
+ <p class="meta" id="menuHint">Alege o categorie. Fiecare rundă are 5 întrebări.</p>
+ <div><span class="badge" id="stars">⭐ 0</span><span class="badge" id="best">🏆 Record: 0</span></div>
+</section>
+<section class="panel hidden" id="game">
+ <div class="toprow"><span class="badge" id="round">Întrebarea 1/5</span><span class="badge" id="points">⭐ 0</span></div>
+ <div class="progress"><div class="bar" id="bar"></div></div>
+ <div id="question"></div><div class="choices" id="choices"></div>
+ <div id="feedback" aria-live="polite"></div>
+ <button onclick="repeatQuestion()" id="listenBtn">🔊 Ascultă din nou</button>
+ <button class="primary" onclick="nextQuestion()" id="nextBtn" disabled>Următoarea ➜</button>
+ <button onclick="backMenu()" id="backBtn">Meniu</button>
+</section>
+<section class="panel">
+ <button onclick="parentGate()">👨‍👩‍👧 <span id="parentLabel">Zona părinților</span></button>
+ <div id="parents" class="hidden">
+  <p id="parentQuestion">Pentru acces, cât face 3 + 4?</p>
+  <input id="parentAnswer" inputmode="numeric" type="number" aria-label="Răspuns">
+  <button onclick="unlock()" id="parentCheck">Verifică</button>
+  <p id="parentResult" aria-live="polite"></p>
+  <p class="meta" id="privacy">Progresul și recordul se păstrează doar pe acest dispozitiv. Nu se trimit date personale.</p>
+ </div>
+</section>
+</div>
+<footer>Creat de Alexe Eduard · © 2026</footer>
+<script>
+let lang='ro',voice=true,kind='',round=0,points=0,answered=false,current=[],totalStars=Number(localStorage.getItem('ls_stars')||0);
+const bank={
+letters:[
+ ['Găsește litera A.','Find the letter A.',['A','M','S'],0],
+ ['Ce literă auzi la începutul cuvântului „MAMA”?','Which letter starts “MUM”?',['T','M','P'],1],
+ ['Alege litera O.','Choose the letter O.',['Q','O','D'],1],
+ ['Ce literă vine după B?','Which letter comes after B?',['C','A','D'],0],
+ ['Găsește litera S.','Find the letter S.',['Z','S','F'],1],
+ ['Alege litera E.','Choose the letter E.',['E','I','U'],0],
+ ['Ce literă vine înainte de D?','Which letter comes before D?',['C','E','F'],0]
+],
+numbers:[
+ ['Ce număr este 3?','Which number is 3?',['2','3','5'],1],
+ ['Ce număr vine după 5?','What number comes after 5?',['4','6','7'],1],
+ ['Alege numărul 10.','Choose number 10.',['1','10','8'],1],
+ ['Câte stele vezi? ⭐⭐⭐','How many stars do you see? ⭐⭐⭐',['2','3','4'],1],
+ ['Ce număr este mai mic: 2 sau 7?','Which number is smaller: 2 or 7?',['7','2','9'],1],
+ ['Ce număr vine înainte de 8?','What number comes before 8?',['7','9','6'],0]
+],
+colors:[
+ ['Alege culoarea roșie.','Choose red.',['🔵','🔴','🟢'],1],
+ ['Alege culoarea galbenă.','Choose yellow.',['🟣','🟡','🟠'],1],
+ ['Alege culoarea albastră.','Choose blue.',['🟢','🔵','🔴'],1],
+ ['Alege culoarea verde.','Choose green.',['🟡','🟣','🟢'],2],
+ ['Alege culoarea roz.','Choose pink.',['🩷','🟤','⚫'],0]
+],
+animals:[
+ ['Ce animal spune „ham-ham”?','Which animal says “woof”?',['🐱','🐶','🐮'],1],
+ ['Unde este pisica?','Where is the cat?',['🐰','🐱','🐸'],1],
+ ['Care animal are gâtul lung?','Which animal has a long neck?',['🦒','🐘','🐼'],0],
+ ['Care animal trăiește în apă?','Which animal lives in water?',['🐴','🐟','🐔'],1],
+ ['Ce animal face „mu”?','Which animal says “moo”?',['🐮','🦁','🐸'],0],
+ ['Care este elefantul?','Which one is the elephant?',['🦊','🐘','🐵'],1]
+],
+shapes:[
+ ['Alege cercul.','Choose the circle.',['🔺','🟦','⚪'],2],
+ ['Alege triunghiul.','Choose the triangle.',['🔺','🟡','🟩'],0],
+ ['Alege pătratul.','Choose the square.',['⚪','🟥','🔵'],1],
+ ['Care formă are trei laturi?','Which shape has three sides?',['🟢','🔺','🟪'],1]
+],
+math:[
+ ['Cât face 2 + 2?','What is 2 + 2?',['3','4','5'],1],
+ ['Cât face 5 - 2?','What is 5 - 2?',['2','3','4'],1],
+ ['Cât face 1 + 3?','What is 1 + 3?',['5','4','2'],1],
+ ['Ai 2 mere și primești încă 1. Câte ai?','You have 2 apples and get 1 more. How many?',['2','3','4'],1],
+ ['Cât face 6 - 1?','What is 6 - 1?',['4','5','6'],1],
+ ['Cât face 3 + 3?','What is 3 + 3?',['5','6','7'],1]
+]};
+const labels={letters:['Litere','Letters'],numbers:['Numere','Numbers'],colors:['Culori','Colors'],animals:['Animale','Animals'],shapes:['Forme','Shapes'],math:['Socoteli','Math']};
+function say(t){if(!voice||!('speechSynthesis'in window))return;speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang=lang==='ro'?'ro-RO':'en-GB';speechSynthesis.speak(u)}
+function setLang(l){lang=l;document.documentElement.lang=l;const t=id=>document.getElementById(id);t('tagline').textContent=l==='ro'?'Învață jucându-te!':'Learn through play!';t('menuTitle').textContent=l==='ro'?'Ce vrei să înveți astăzi?':'What would you like to learn today?';t('menuHint').textContent=l==='ro'?'Alege o categorie. Fiecare rundă are 5 întrebări.':'Choose a category. Each round has 5 questions.';t('parentLabel').textContent=l==='ro'?'Zona părinților':'Parents area';t('parentCheck').textContent=l==='ro'?'Verifică':'Check';t('backBtn').textContent=l==='ro'?'Meniu':'Menu';t('listenBtn').textContent=l==='ro'?'🔊 Ascultă din nou':'🔊 Listen again';t('nextBtn').textContent=l==='ro'?'Următoarea ➜':'Next ➜';document.querySelectorAll('[data-ro]').forEach(e=>e.textContent=e.dataset[l]);if(!t('game').classList.contains('hidden')&&current.length)renderQuestion();say(l==='ro'?'Limba română selectată':'English selected')}
+function toggleVoice(){voice=!voice;document.getElementById('voiceBtn').textContent=voice?(lang==='ro'?'🔊 Voce: pornită':'🔊 Voice: on'):(lang==='ro'?'🔇 Voce: oprită':'🔇 Voice: off');if(!voice&&'speechSynthesis'in window)speechSynthesis.cancel();else say(lang==='ro'?'Vocea este pornită':'Voice is on')}
+function start(k){kind=k;round=0;points=0;current=[...bank[k]].sort(()=>Math.random()-.5).slice(0,5);document.getElementById('menu').classList.add('hidden');document.getElementById('game').classList.remove('hidden');renderQuestion()}
+function renderQuestion(){answered=false;let q=current[round];document.getElementById('question').textContent=q[lang==='ro'?0:1];document.getElementById('round').textContent=(lang==='ro'?'Întrebarea ':'Question ')+(round+1)+'/5';document.getElementById('points').textContent='⭐ '+points;document.getElementById('bar').style.width=(round/5*100)+'%';document.getElementById('feedback').textContent='';document.getElementById('nextBtn').disabled=true;let c=document.getElementById('choices');c.innerHTML='';q[2].forEach((v,i)=>{let b=document.createElement('button');b.textContent=v;b.onclick=()=>choose(i);c.appendChild(b)});say(q[lang==='ro'?0:1])}
+function choose(i){if(answered)return;answered=true;let q=current[round],good=i===q[3],f=document.getElementById('feedback');if(good){points++;f.textContent=lang==='ro'?'🌟 Bravo! Răspuns corect!':'🌟 Well done! Correct answer!';say(f.textContent)}else{f.textContent=lang==='ro'?'💛 Aproape! Răspunsul corect este: ':'💛 Good try! The correct answer is: '+q[2][q[3]];if(lang==='ro')f.textContent+=q[2][q[3]];say(f.textContent)}document.getElementById('points').textContent='⭐ '+points;document.getElementById('nextBtn').disabled=false;document.querySelectorAll('#choices button').forEach((b,j)=>b.disabled=true)}
+function nextQuestion(){if(!answered)return;round++;if(round<5){renderQuestion();return}totalStars+=points;localStorage.setItem('ls_stars',String(totalStars));localStorage.setItem('ls_best',String(Math.max(Number(localStorage.getItem('ls_best')||0),points)));document.getElementById('bar').style.width='100%';document.getElementById('question').textContent=lang==='ro'?'Rundă terminată!':'Round complete!';document.getElementById('choices').innerHTML='';document.getElementById('feedback').textContent=lang==='ro'?`Ai câștigat ${points} din 5 steluțe! Felicitări!`:`You earned ${points} out of 5 stars! Great job!`;document.getElementById('round').textContent=lang==='ro'?'Rezultat':'Result';document.getElementById('nextBtn').disabled=true;document.getElementById('nextBtn').textContent=lang==='ro'?'Joacă din nou ↻':'Play again ↻';document.getElementById('nextBtn').disabled=false;document.getElementById('nextBtn').onclick=()=>start(kind);updateStats();say(document.getElementById('feedback').textContent)}
+function repeatQuestion(){if(current[round])say(current[round][lang==='ro'?0:1])}
+function backMenu(){document.getElementById('game').classList.add('hidden');document.getElementById('menu').classList.remove('hidden');document.getElementById('nextBtn').onclick=nextQuestion;document.getElementById('nextBtn').textContent=lang==='ro'?'Următoarea ➜':'Next ➜';updateStats()}
+function updateStats(){document.getElementById('stars').textContent='⭐ '+totalStars;document.getElementById('best').textContent=(lang==='ro'?'🏆 Record: ':'🏆 Best: ')+(localStorage.getItem('ls_best')||0)}
+function parentGate(){document.getElementById('parents').classList.toggle('hidden');document.getElementById('parentResult').textContent='';document.getElementById('parentQuestion').textContent=lang==='ro'?'Pentru acces, cât face 3 + 4?':'To enter, what is 3 + 4?'}
+function unlock(){let ok=document.getElementById('parentAnswer').value.trim()==='7';document.getElementById('parentResult').textContent=ok?(lang==='ro'?'Acces permis. Recordul este local pe acest dispozitiv.':'Access granted. Scores are stored locally on this device.'):(lang==='ro'?'Răspuns greșit. Mai încearcă.':'Not quite. Try again.')}
+updateStats();setLang('ro');
+</script></body></html>
